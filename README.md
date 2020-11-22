@@ -46,6 +46,7 @@ cover: true
 + **automatic_files_backup** 文件夹中是程序源代码
 + 请不要直接运行 **automatic_files_backup.exe** ，除非你想看见一个大黑框
 + **settings.txt**中排除的文件处请随便填一个，否则不能读取成功
++ 配置文件仅支持utf-8编码，如果您不知道什么是utf-8,请直接修改配置模板和settings而非自己创建文本文件
 
 ### 填写示例
 
