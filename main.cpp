@@ -34,6 +34,18 @@ int now=0;
 int mod;//文件夹更新检测模式
 bool other_mod;
 bool save_hash;
+int StringToInt(std::string str)
+{
+    int len=str.length();
+    int ans=0;
+    for(int i=0;i<len;i++)
+    {
+        if(str[i]>'9'||str[i]<'0') continue;
+        ans*=10;
+        ans+=str[i]-'0';
+    }
+    return ans;
+}
 struct lesson
 {
     struct tm
@@ -44,15 +56,29 @@ struct lesson
     QString name;
     bool ip()//读入
     {
-        std::string tmp;
+        std::string tmp1,tmp2,tmp3,tmp4,tmp5;
         bool flag=(
-                    fin>>from.hour>>from.minute>>to.hour>>to.minute
+                    std::getline(fin,tmp1)
                     &&
-                    fin>>tmp
+                    std::getline(fin,tmp2)
+                    &&
+                    std::getline(fin,tmp3)
+                    &&
+                    std::getline(fin,tmp4)
+                    &&
+                    std::getline(fin,tmp5)
                     );
+        tmp1=QString::fromStdString(tmp1).toStdString();
+        tmp2=QString::fromStdString(tmp2).toStdString();
+        tmp3=QString::fromStdString(tmp3).toStdString();
+        tmp4=QString::fromStdString(tmp4).toStdString();
+        from.hour=StringToInt(tmp1);
+        from.minute=StringToInt(tmp2);
+        to.hour=StringToInt(tmp3);
+        to.minute=StringToInt(tmp4);
         if(flag)
         {
-            name=QString::fromStdString(tmp.c_str());
+            name=QString::fromStdString(tmp5.c_str());
             Dirs.insert(name);
         }
         return flag;
@@ -145,7 +171,8 @@ bool copyFileToPath(QString sourceDir ,QString toDir)
                 if(!exist)
                 {
                     QFile::copy(sourceDir, toDir);
-                    fout<<"复制文件："<<toDir.toStdString()<<'\n';
+                    GetLocalTime(&sys);
+                    fout<<sys.wHour<<':'<<sys.wMinute<<"  复制文件："<<toDir.toStdString()<<'\n';
                     return true;
                 }
             }
@@ -154,7 +181,8 @@ bool copyFileToPath(QString sourceDir ,QString toDir)
     else
     {
         QFile::copy(sourceDir, toDir);//不存在冲突，直接复制
-        fout<<"复制文件："<<toDir.toStdString()<<'\n';
+        GetLocalTime(&sys);
+        fout<<sys.wHour<<':'<<sys.wMinute<<"  复制文件："<<toDir.toStdString()<<'\n';
         return true;
     }
     return false;
@@ -192,7 +220,7 @@ bool copyDirectoryFiles(const QString &fromDir, const QString &toDir)
     if(empty)
     {
         targetDir.rmdir(targetDir.absolutePath());
-        fout<<"移除空文件夹："<<targetDir.absolutePath().toStdString()<<'\n';
+        //fout<<"移除空文件夹："<<targetDir.absolutePath().toStdString()<<'\n';
     }
     return empty;
 }
@@ -341,6 +369,7 @@ void scan(QString path,int space)
 int main(int argc, char *argv[])
 {
     bool scan_flag;
+    QString temp;
     bool desktop=false;
     QCoreApplication a(argc, argv);
     fout.open("log.txt",std::ios::app);
@@ -355,37 +384,63 @@ int main(int argc, char *argv[])
     std::string tmp;
     /*--------------------------------------------------------------------------*/
     std::getline(fin,tmp);
-    while(tmp[0]=='#') std::getline(fin,tmp);
     input=QString::fromStdString(tmp.c_str());
+    while(input[0]=='#')
+    {
+        std::getline(fin,tmp);
+        input=QString::fromStdString(tmp.c_str());
+    }
     fout<<"   文件源："<<tmp<<"\n";
     if (input=="Desktop") desktop=true;
     /*--------------------------------------------------------------------------*/
     std::getline(fin,tmp);
-    while(tmp[0]=='#') std::getline(fin,tmp);
-    fout<<"   目标目录："<<tmp<<"\n";
     output=QString::fromStdString(tmp.c_str());
+    while(output[0]=='#')
+    {
+        std::getline(fin,tmp);
+        output=QString::fromStdString(tmp.c_str());
+    }
+    fout<<"   目标目录："<<tmp<<"\n";
     /*--------------------------------------------------------------------------*/
     std::getline(fin,tmp);
-    while(tmp[0]=='#') std::getline(fin,tmp);
+    temp=QString::fromStdString(tmp);
+    while(temp[0]=='#')
+    {
+        std::getline(fin,tmp);
+        temp=QString::fromStdString(tmp);
+    }
     ss<<tmp;
     ss>>sleep;
     fout<<"   等待时间："<<sleep<<"\n";
     /*--------------------------------------------------------------------------*/
     std::getline(fin,tmp);
-    while(tmp[0]=='#') std::getline(fin,tmp);
+    while(tmp[0]=='#')
+    {
+        std::getline(fin,tmp);
+    }
     ss.clear();
     ss<<tmp;
     ss>>mod;
     fout<<"   文件夹更新检测方式："<<mod<<"\n";
     /*--------------------------------------------------------------------------*/
     std::getline(fin,tmp);
-    while(tmp[0]=='#') std::getline(fin,tmp);
+    temp=QString::fromStdString(tmp);
+    while(temp[0]=='#')
+    {
+        std::getline(fin,tmp);
+        temp=QString::fromStdString(tmp);
+    }
     ss.clear();
     ss<<tmp;
     ss>>scan_flag;
     /*--------------------------------------------------------------------------*/
     std::getline(fin,tmp);
-    while(tmp[0]=='#') std::getline(fin,tmp);
+    temp=QString::fromStdString(tmp);
+    while(temp[0]=='#')
+    {
+        std::getline(fin,tmp);
+        temp=QString::fromStdString(tmp);
+    }
     ss.clear();
     ss<<tmp;
     ss>>save_hash;
@@ -393,7 +448,12 @@ int main(int argc, char *argv[])
     fout<<"   排除的文件："<<"\n";
     while(std::getline(fin,tmp))
     {
-        while(tmp[0]=='#') std::getline(fin,tmp);
+        temp=QString::fromStdString(tmp);
+        while(temp[0]=='#')
+        {
+            std::getline(fin,tmp);
+            temp=QString::fromStdString(tmp);
+        }
         except_files.insert(QString::fromStdString(tmp));
         fout<<"      "<<tmp<<"\n";
     }
@@ -402,7 +462,7 @@ int main(int argc, char *argv[])
     //----------------------------读入课程表-----------------------------------
     tmp=std::to_string(sys.wDayOfWeek)+".txt";
     fout<<"读入课程表："<<tmp<<"\n";
-    fin.open(tmp.c_str());
+    fin.open(tmp);
     if(!fin)
     {
         fout<<"读取课程表失败！";
@@ -451,12 +511,17 @@ int main(int argc, char *argv[])
     while(1)
     {
         GetLocalTime(&sys);
-        if(sys.wHour>=L[now].to.hour&&sys.wMinute>L[now].to.minute)//当前科目已结束
+        if(sys.wHour>L[now].to.hour||(sys.wHour==L[now].to.hour&&sys.wMinute>L[now].to.minute))//当前科目已结束
         {
-            while(sys.wHour>=L[now].to.hour&&sys.wMinute>L[now].to.minute) now++;//更新科目信息
+            //while(sys.wHour>=L[now].to.hour&&sys.wMinute>L[now].to.minute) now++;//好蠢啊。。。。。。
+            while(now<=tot&&(sys.wHour>L[now].to.hour||(sys.wHour==L[now].to.hour&&sys.wMinute>L[now].to.minute))) now++;//更新科目信息
             other_mod=false;
         }
-        if(now>tot||(sys.wHour<=L[now].from.hour&&sys.wMinute>L[now].from.minute))//当前科目未开始
+        if(other_mod&&now<=tot&&(sys.wHour>L[now].from.hour||(sys.wHour==L[now].from.hour&&sys.wMinute>=L[now].from.minute)))//当前科目已开始
+        {
+            other_mod=false;
+        }
+        if(now>tot||(sys.wHour<L[now].from.hour||(sys.wHour==L[now].from.hour&&sys.wMinute<L[now].from.minute)))//当前科目未开始
         {
             other_mod=true;
         }
